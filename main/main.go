@@ -4,10 +4,16 @@ import (
 	"fmt"
 	"net/http"
 
+	"flag"
+
 	"github.com/gophercises/urlshort"
 )
 
 func main() {
+	filePath := flag.String("file", "paths.json", "Paths for short-url redirects")
+	flag.Parse()
+
+	fmt.Printf("Reading file from: %s", *filePath)
 	mux := defaultMux()
 
 	// Build the MapHandler using the mux as the fallback
@@ -19,18 +25,12 @@ func main() {
 
 	// Build the YAMLHandler using the mapHandler as the
 	// fallback
-	yaml := `
-- path: /urlshort
-  url: https://github.com/gophercises/urlshort
-- path: /urlshort-final
-  url: https://github.com/gophercises/urlshort/tree/solution
-`
-	yamlHandler, err := urlshort.YAMLHandler([]byte(yaml), mapHandler)
+	fileHandler, err := urlshort.FileHandler(*filePath, mapHandler)
 	if err != nil {
 		panic(err)
 	}
 	fmt.Println("Starting the server on :8080")
-	http.ListenAndServe(":8080", yamlHandler)
+	http.ListenAndServe(":8080", fileHandler)
 }
 
 func defaultMux() *http.ServeMux {

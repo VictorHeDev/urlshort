@@ -2,7 +2,10 @@ package urlshort
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"os"
+	"path/filepath"
 
 	"gopkg.in/yaml.v3"
 )
@@ -73,8 +76,9 @@ func YAMLHandler(yml []byte, fallback http.Handler) (http.HandlerFunc, error) {
 //
 // JSON is expected to be in the format:
 //
-//   - path: /some-path
-//     url: https://www.some-url.com/demo
+//	{
+//	  "/some-path": "https://www.some-url.com/demo"
+//	}
 //
 // The only errors that can be returned all related to having
 // invalid JSON data.
@@ -89,4 +93,23 @@ func JSONHandler(jsn []byte, fallback http.Handler) (http.HandlerFunc, error) {
 	}
 
 	return MapHandler(urlMap, fallback), nil
+}
+
+// FileHandler takes the file's suffix passed in via CLI flag
+// and returns the appropriate handler
+func FileHandler(filename string, fallback http.Handler) (http.HandlerFunc, error) {
+	fileSuffix := filepath.Ext(filename)
+	byteBody, err := os.ReadFile(filename)
+	if err != nil {
+		return nil, err
+	}
+
+	switch fileSuffix {
+	case ".json":
+		return JSONHandler(byteBody, fallback)
+	case ".yaml", ".yml":
+		return YAMLHandler(byteBody, fallback)
+	default:
+		return nil, fmt.Errorf("unsupported filetype for filename: %s", filename)
+	}
 }
